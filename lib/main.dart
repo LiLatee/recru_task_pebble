@@ -24,8 +24,9 @@ class MyApp extends StatelessWidget {
               Icons.camera,
               Icons.photo,
             ],
-            builder: (icon) => DockItem(
+            builder: (index, icon) => DockItem(
               key: ValueKey(icon),
+              index: index,
               icon: icon,
             ),
           ),
@@ -39,25 +40,31 @@ class DockItem extends StatelessWidget {
   const DockItem({
     super.key,
     required this.icon,
+    required this.index,
   });
 
   static const double iconSize = 48;
   static const double margin = 8;
 
   final IconData icon;
+  final int index;
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        height: iconSize,
-        width: iconSize,
-        margin: const EdgeInsets.all(margin),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          color: Colors.primaries[icon.hashCode % Colors.primaries.length],
+    return ReorderableDragStartListener(
+      index: index,
+      enabled: true,
+      child: Center(
+        child: Container(
+          height: iconSize,
+          width: iconSize,
+          margin: const EdgeInsets.all(margin),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.primaries[icon.hashCode % Colors.primaries.length],
+          ),
+          child: Center(child: Icon(icon, color: Colors.white)),
         ),
-        child: Center(child: Icon(icon, color: Colors.white)),
       ),
     );
   }
@@ -74,8 +81,8 @@ class Dock<T> extends StatefulWidget {
   /// Initial [T] items to put in this [Dock].
   final List<T> items;
 
-  /// Builder building the provided [T] item.
-  final Widget Function(T) builder;
+  /// Builder building the provided [T] item and [index] of that item [T].
+  final Widget Function(int, T) builder;
 
   @override
   State<Dock<T>> createState() => _DockState<T>();
@@ -104,6 +111,7 @@ class _DockState<T> extends State<Dock<T>> {
         return Transform.scale(
           scale: scale,
           child: DockItem(
+            index: index,
             icon: _items[index] as IconData,
           ),
         );
@@ -125,6 +133,7 @@ class _DockState<T> extends State<Dock<T>> {
         shrinkWrap: true,
         proxyDecorator: proxyDecorator,
         scrollDirection: Axis.horizontal,
+        buildDefaultDragHandles: false,
         onReorder: (oldIndex, newIndex) {
           setState(() {
             if (oldIndex < newIndex) {
@@ -138,7 +147,9 @@ class _DockState<T> extends State<Dock<T>> {
           width: DockItem.iconSize + 2 * DockItem.margin,
           height: DockItem.iconSize + 2 * DockItem.margin,
         ),
-        children: _items.map(widget.builder).toList(),
+        children: [
+          for (int index = 0; index < _items.length; index++) widget.builder(index, _items[index]),
+        ],
       ),
     );
   }
